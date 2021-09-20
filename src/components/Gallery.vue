@@ -1,13 +1,19 @@
 <template>
-  <div class="hello">
-    <!-- <pre>{{ imagesArray[0].url }}</pre> -->
+  <div class="container">
+    <div class="loading" v-if="loading">
+      <img src="../assets/loading-load.gif" class="loadingImg">
+    </div>
     <div v-if="imagesArray.length" class="gallery">
-      <img
-        :src="imagesArray[index].url"
-        v-for="(image, index) in imagesArray"
-        :key="index"
-        @click="deleteImage(index)"
-      />
+        <img
+          :ref="`img-${index}`"
+          :data-id="`img-${index}`"
+          loading="lazy"
+          :src="imagesArray[index].url"
+          v-for="(image, index) in imagesArray"
+          :key="index"
+          @click="deleteImage(index)"
+          class="list-complete-item"
+        />
     </div>
   </div>
 </template>
@@ -20,24 +26,33 @@ export default {
   },
   data () {
     return {
-      imagesArray: []
+      imagesArray: [],
+      error: '',
+      loading: true
     }
   },
   methods: {
-    getApi () {
-      fetch('https://jsonplaceholder.typicode.com/photos')
-        .then(response => response.json())
-        .then(data => (this.imagesArray = data))
-        .catch(error => {
-          console.log(error)
-        })
+    async getApi () {
+      try {
+        this.imagesArray = await (
+          await fetch('https://jsonplaceholder.typicode.com/photos')
+        ).json()
+      } catch (e) {
+        this.error = e
+      } finally {
+        this.loading = false
+      }
     },
-    deleteImage (i) {
-      this.imagesArray.splice(i, 1)
+    deleteImage (i = 0) {
+      const [ref] = this.$refs[`img-${i}`]
+      ref.classList.add('img-transition')
     }
   },
   mounted () {
     this.getApi()
+    document.addEventListener('transitionend', ({ target }) => {
+      target.classList.add('hide')
+    }, false)
   }
 }
 </script>
@@ -47,35 +62,54 @@ export default {
 $breakpoint-tablet: 768px;
 $breakpoint-medium-desktop: 1024px;
 $breakpoint-large-desktop: 1200px;
-
-.gallery {
-  display:flex;
-  flex-wrap:wrap;
-  img {
-    margin:5px;
-    cursor:pointer;
+.container {
+  .loading {
+    background:rgba(255, 255, 255, 0.5);
+    position:absolute;
+    width:100%;
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    .loadingImg {
+      width:15%;
+    }
+  }
+  .gallery {
+    display: flex;
+    flex-wrap: wrap;
+    img {
+      margin: 5px;
+      cursor: pointer;
+    }
+  }
+  @media (min-width: $breakpoint-tablet) {
+    .gallery {
+      img {
+        width: calc(50% - 10px);
+      }
+    }
+  }
+  @media (min-width: $breakpoint-medium-desktop) {
+    .gallery {
+      img {
+        width: calc(33% - 10px);
+      }
+    }
+  }
+  @media (min-width: $breakpoint-large-desktop) {
+    .gallery {
+      img {
+        width: calc(25% - 10px);
+      }
+    }
+  }
+  .img-transition {
+    opacity:0;
+    transition: 250ms ease-in-out;
+  }
+  .hide {
+    display:none;
   }
 }
-@media (min-width: $breakpoint-tablet) {
-  .gallery {
-    background:lime;
-    img {
-      width:calc(50% - 10px);
-    }
-  }
- }
-@media (min-width: $breakpoint-medium-desktop) {
-  .gallery {
-    background:coral;
-    img {
-      width:inherit;
-    }
-  }
- }
-@media (min-width: $breakpoint-large-desktop) {
-  .gallery {
-    background:blue;
-  }
-
- }
 </style>
